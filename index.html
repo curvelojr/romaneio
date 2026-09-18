@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -47,7 +47,6 @@
       overflow-x: hidden;
     }
 
-    /* Content viewport */
     .viewport {
       width: 100%;
       max-width: 440px;
@@ -62,9 +61,8 @@
       border: 1px solid var(--border-blue);
     }
 
-    /* Full width viewport when admin is active */
     .viewport.admin-mode {
-      max-width: 960px;
+      max-width: 980px;
       height: 94vh;
       border-radius: 12px;
     }
@@ -92,7 +90,6 @@
       display: flex;
     }
 
-    /* Brand Logo */
     .brand-logo {
       display: flex;
       align-items: center;
@@ -111,7 +108,6 @@
       font-style: italic;
     }
 
-    /* Buttons */
     .btn-primary {
       background-color: var(--primary-yellow);
       color: #080f1d;
@@ -150,7 +146,6 @@
       background-color: #1e3966;
     }
 
-    /* Inputs */
     .input-field {
       background-color: var(--bg-card);
       border: 1px solid var(--border-blue);
@@ -166,7 +161,6 @@
       border-color: var(--primary-yellow);
     }
 
-    /* Screen: Login */
     #screen-login {
       justify-content: center;
       align-items: center;
@@ -190,7 +184,6 @@
       margin-bottom: 8px;
     }
 
-    /* Header Entregador */
     .driver-header {
       background-color: var(--bg-card);
       border-bottom: 1px solid var(--border-blue);
@@ -245,7 +238,6 @@
       border: 1px solid var(--border-blue);
     }
 
-    /* Tabs */
     .tabs-nav {
       display: flex;
       background-color: var(--bg-card);
@@ -275,7 +267,6 @@
       background-color: rgba(245, 176, 0, 0.05);
     }
 
-    /* Deliveries List */
     .deliveries-container {
       flex: 1;
       padding: 12px;
@@ -342,7 +333,6 @@
       border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
-    /* Delivery Detail Screen */
     .detail-card {
       background-color: var(--bg-card);
       border: 1px solid var(--border-blue);
@@ -399,7 +389,6 @@
       color: var(--green-success);
     }
 
-    /* Modal Screens: Camera & Signature */
     .modal-overlay {
       display: none;
       position: absolute;
@@ -483,9 +472,7 @@
       border: 4px solid var(--primary-yellow);
     }
 
-    /* -------------------------------------------
-       ADMIN PANEL STYLES
-       ------------------------------------------- */
+    /* ESTILOS DA ÁREA ADMINISTRATIVA */
     .admin-header {
       background-color: var(--bg-card);
       border-bottom: 1px solid var(--border-blue);
@@ -576,14 +563,25 @@
       color: #fff;
     }
 
+    .action-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .action-icon-btn {
       background: none;
       border: none;
       color: var(--text-muted);
       cursor: pointer;
       padding: 4px;
+      font-size: 0.95rem;
+      transition: color 0.15s;
     }
-    .action-icon-btn:hover {
+    .action-icon-btn.edit:hover {
+      color: var(--primary-yellow);
+    }
+    .action-icon-btn.delete:hover {
       color: var(--red-danger);
     }
 
@@ -629,9 +627,7 @@
 
   <div class="viewport" id="app-viewport">
 
-    <!-- =============================================================
-         1. TELA DE LOGIN
-         ============================================================= -->
+    <!-- 1. TELA DE LOGIN -->
     <section class="screen active" id="screen-login">
       <div class="brand-logo">
         RILDON<span>EXPRESS</span>
@@ -653,9 +649,7 @@
       </div>
     </section>
 
-    <!-- =============================================================
-         2. PAINEL DE GESTÃO (ADMINISTRADOR)
-         ============================================================= -->
+    <!-- 2. PAINEL DE GESTÃO (ADMINISTRADOR) -->
     <section class="screen" id="screen-admin">
       <header class="admin-header">
         <div class="brand-logo" style="padding:0; font-size: 1.2rem;">
@@ -677,7 +671,8 @@
         <div id="tab-encomendas" class="admin-tab-content">
           <div class="admin-grid-layout">
             <div class="admin-card">
-              <div class="admin-card-title">Nova Encomenda</div>
+              <div class="admin-card-title" id="title-form-order">Nova Encomenda</div>
+              <input type="hidden" id="editing-order-id" value="">
               <div class="form-group">
                 <label>Cliente</label>
                 <input type="text" id="order-client" class="input-field" placeholder="Nome do Cliente / Empresa">
@@ -710,7 +705,8 @@
                 <label>Atribuir a Entregador</label>
                 <select id="order-driver-select" class="input-field"></select>
               </div>
-              <button class="btn-primary" onclick="adminCreateOrder()">Cadastrar Encomenda</button>
+              <button class="btn-primary" id="btn-save-order" onclick="adminSaveOrder()">Cadastrar Encomenda</button>
+              <button class="btn-secondary" id="btn-cancel-order" onclick="adminCancelEditOrder()" style="display:none;">Cancelar Edição</button>
             </div>
 
             <div class="admin-card">
@@ -738,7 +734,8 @@
         <div id="tab-usuarios" class="admin-tab-content" style="display:none;">
           <div class="admin-grid-layout">
             <div class="admin-card">
-              <div class="admin-card-title">Registar Utilizador</div>
+              <div class="admin-card-title" id="title-form-user">Registar Utilizador</div>
+              <input type="hidden" id="editing-user-id" value="">
               <div class="form-group">
                 <label>Nome Completo</label>
                 <input type="text" id="user-name" class="input-field" placeholder="Ex: Carlos Silva">
@@ -770,7 +767,8 @@
                   </select>
                 </div>
               </div>
-              <button class="btn-primary" onclick="adminCreateUser()">Criar Utilizador</button>
+              <button class="btn-primary" id="btn-save-user" onclick="adminSaveUser()">Criar Utilizador</button>
+              <button class="btn-secondary" id="btn-cancel-user" onclick="adminCancelEditUser()" style="display:none;">Cancelar Edição</button>
             </div>
 
             <div class="admin-card">
@@ -797,7 +795,8 @@
         <div id="tab-veiculos" class="admin-tab-content" style="display:none;">
           <div class="admin-grid-layout">
             <div class="admin-card">
-              <div class="admin-card-title">Registar Veículo</div>
+              <div class="admin-card-title" id="title-form-vehicle">Registar Veículo</div>
+              <input type="hidden" id="editing-vehicle-id" value="">
               <div class="form-group">
                 <label>Modelo do Veículo</label>
                 <input type="text" id="vehicle-model" class="input-field" placeholder="Ex: Honda CG 160 / Shineray">
@@ -810,7 +809,8 @@
                 <label>Vincular a Entregador</label>
                 <select id="vehicle-user-select" class="input-field"></select>
               </div>
-              <button class="btn-primary" onclick="adminCreateVehicle()">Registar Veículo</button>
+              <button class="btn-primary" id="btn-save-vehicle" onclick="adminSaveVehicle()">Registar Veículo</button>
+              <button class="btn-secondary" id="btn-cancel-vehicle" onclick="adminCancelEditVehicle()" style="display:none;">Cancelar Edição</button>
             </div>
 
             <div class="admin-card">
@@ -857,9 +857,7 @@
       </div>
     </section>
 
-    <!-- =============================================================
-         3. TELA DO ENTREGADOR: LISTAGEM DE ENTREGAS
-         ============================================================= -->
+    <!-- 3. TELA DO ENTREGADOR: LISTAGEM -->
     <section class="screen" id="screen-driver-list">
       <div class="brand-logo" style="padding: 10px 0 6px 0;">
         RILDON<span>EXPRESS</span>
@@ -905,9 +903,7 @@
       <div class="deliveries-container" id="driver-orders-container"></div>
     </section>
 
-    <!-- =============================================================
-         4. TELA DO ENTREGADOR: DETALHES & COLETA DO PROTOCOLO
-         ============================================================= -->
+    <!-- 4. TELA DO ENTREGADOR: DETALHES -->
     <section class="screen" id="screen-driver-detail">
       <div class="brand-logo" style="padding: 10px 0 6px 0;">
         RILDON<span>EXPRESS</span>
@@ -988,9 +984,7 @@
       </div>
     </section>
 
-    <!-- =============================================================
-         5. MODAL: CAPTURA DE FOTO
-         ============================================================= -->
+    <!-- 5. MODAL: FOTO -->
     <div class="modal-overlay" id="modal-camera">
       <div class="brand-logo" style="padding: 12px 0;">
         RILDON<span>EXPRESS</span> &bull; FOTO
@@ -1007,9 +1001,7 @@
       </div>
     </div>
 
-    <!-- =============================================================
-         6. MODAL: ASSINATURA DIGITAL
-         ============================================================= -->
+    <!-- 6. MODAL: ASSINATURA -->
     <div class="modal-overlay" id="modal-signature">
       <div class="brand-logo" style="padding: 12px 0;">
         RILDON<span>EXPRESS</span> &bull; ASSINATURA
@@ -1030,9 +1022,6 @@
   </div>
 
   <script>
-    /* ==========================================================================
-       ESTADO E BASE DE DADOS (LOCALSTORAGE)
-       ========================================================================== */
     const STORAGE_KEY = 'RILDON_EXPRESS_DB_V2';
 
     const defaultDatabase = {
@@ -1042,8 +1031,10 @@
         { id: 'usr_2', name: 'José Oliveira', username: 'taxi1', password: '123', role: 'taxista', contract: 'Próprio', vehicleId: 'veh_2' }
       ],
       vehicles: [
-        { id: 'veh_1', model: 'Shineray XY 150', plate: 'IAN-3256', userId: 'usr_1' },
-        { id: 'veh_2', model: 'Chevrolet Spin', plate: 'OES-4412', userId: 'usr_2' }
+        { id: 'veh_1', model: 'Honda CG 160 FAN', plate: 'TNW9E34', userId: null },
+        { id: 'veh_2', model: 'HONDA/CG160 START', plate: 'TNU0I87', userId: null },
+        { id: 'veh_3', model: 'HONDA/CG 160 FAN', plate: 'TNW9E34', userId: null },
+        { id: 'veh_4', model: 'I/SHINERAY XY50Q', plate: 'QKU0638', userId: null }
       ],
       orders: [
         {
@@ -1055,21 +1046,6 @@
           orderNum: '2568',
           nfNum: '2568',
           value: '1.056,00',
-          driverId: 'usr_1',
-          status: 'pending',
-          photo: null,
-          signature: null,
-          deliveredAt: null
-        },
-        {
-          id: 'ord_002',
-          code: '002',
-          client: 'Oficina Central Peças',
-          doc: '012.345.678/0001-90',
-          address: 'Av. Marechal Rondon, 1420',
-          orderNum: '2569',
-          nfNum: '2569',
-          value: '430,00',
           driverId: 'usr_1',
           status: 'pending',
           photo: null,
@@ -1098,9 +1074,6 @@
     let currentDriverTab = 'pending';
     let tempCapturedPhoto = null;
 
-    /* ==========================================================================
-       GESTÃO DE TELAS E AUTENTICAÇÃO
-       ========================================================================== */
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       const target = document.getElementById(screenId);
@@ -1144,9 +1117,6 @@
       showScreen('screen-login');
     }
 
-    /* ==========================================================================
-       PAINEL DE ADMINISTRAÇÃO
-       ========================================================================== */
     function switchAdminTab(tabId) {
       document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active'));
       event.target.classList.add('active');
@@ -1174,8 +1144,11 @@
         drivers.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
     }
 
-    // Criar Encomenda
-    function adminCreateOrder() {
+    /* -------------------------------------------------------------
+       ADMIN: ENCOMENDAS (CRIAR / EDITAR)
+       ------------------------------------------------------------- */
+    function adminSaveOrder() {
+      const editId = document.getElementById('editing-order-id').value;
       const client = document.getElementById('order-client').value.trim();
       const doc = document.getElementById('order-doc').value.trim();
       const val = document.getElementById('order-val').value.trim();
@@ -1189,35 +1162,73 @@
         return;
       }
 
-      const newOrder = {
-        id: 'ord_' + Date.now(),
-        code: String(DB.orders.length + 1).padStart(3, '0'),
-        client,
-        doc: doc || 'Não informado',
-        address,
-        orderNum: num,
-        nfNum: nf || num,
-        value: val || '0,00',
-        driverId,
-        status: 'pending',
-        photo: null,
-        signature: null,
-        deliveredAt: null
-      };
+      if (editId) {
+        const order = DB.orders.find(o => o.id === editId);
+        if (order) {
+          order.client = client;
+          order.doc = doc || 'Não informado';
+          order.value = val || '0,00';
+          order.address = address;
+          order.orderNum = num;
+          order.nfNum = nf || num;
+          order.driverId = driverId;
+        }
+        alert('Encomenda atualizada com sucesso!');
+      } else {
+        const newOrder = {
+          id: 'ord_' + Date.now(),
+          code: String(DB.orders.length + 1).padStart(3, '0'),
+          client,
+          doc: doc || 'Não informado',
+          address,
+          orderNum: num,
+          nfNum: nf || num,
+          value: val || '0,00',
+          driverId,
+          status: 'pending',
+          photo: null,
+          signature: null,
+          deliveredAt: null
+        };
+        DB.orders.push(newOrder);
+        alert('Encomenda cadastrada com sucesso!');
+      }
 
-      DB.orders.push(newOrder);
       saveDB(DB);
+      adminCancelEditOrder();
       renderAdminOrders();
       renderAdminHistory();
+    }
 
+    function adminEditOrder(orderId) {
+      const order = DB.orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      document.getElementById('editing-order-id').value = order.id;
+      document.getElementById('order-client').value = order.client;
+      document.getElementById('order-doc').value = order.doc;
+      document.getElementById('order-val').value = order.value;
+      document.getElementById('order-address').value = order.address;
+      document.getElementById('order-num').value = order.orderNum;
+      document.getElementById('order-nf').value = order.nfNum;
+      document.getElementById('order-driver-select').value = order.driverId;
+
+      document.getElementById('title-form-order').textContent = `Editar Encomenda #${order.code}`;
+      document.getElementById('btn-save-order').textContent = 'Salvar Alterações';
+      document.getElementById('btn-cancel-order').style.display = 'inline-flex';
+    }
+
+    function adminCancelEditOrder() {
+      document.getElementById('editing-order-id').value = '';
       document.getElementById('order-client').value = '';
       document.getElementById('order-doc').value = '';
       document.getElementById('order-val').value = '';
       document.getElementById('order-address').value = '';
       document.getElementById('order-num').value = '';
       document.getElementById('order-nf').value = '';
-
-      alert('Encomenda cadastrada com sucesso!');
+      document.getElementById('title-form-order').textContent = 'Nova Encomenda';
+      document.getElementById('btn-save-order').textContent = 'Cadastrar Encomenda';
+      document.getElementById('btn-cancel-order').style.display = 'none';
     }
 
     function renderAdminOrders() {
@@ -1236,7 +1247,10 @@
             <td>${driver ? driver.name : 'Não atribuído'}</td>
             <td>${statusBadge}</td>
             <td>
-              <button class="action-icon-btn" onclick="adminDeleteOrder('${o.id}')" title="Excluir">✕</button>
+              <div class="action-group">
+                <button class="action-icon-btn edit" onclick="adminEditOrder('${o.id}')" title="Editar">✎</button>
+                <button class="action-icon-btn delete" onclick="adminDeleteOrder('${o.id}')" title="Excluir">✕</button>
+              </div>
             </td>
           </tr>
         `;
@@ -1251,8 +1265,11 @@
       renderAdminHistory();
     }
 
-    // Criar Utilizador
-    function adminCreateUser() {
+    /* -------------------------------------------------------------
+       ADMIN: UTILIZADORES (CRIAR / EDITAR)
+       ------------------------------------------------------------- */
+    function adminSaveUser() {
+      const editId = document.getElementById('editing-user-id').value;
       const name = document.getElementById('user-name').value.trim();
       const username = document.getElementById('user-username').value.trim();
       const password = document.getElementById('user-password').value.trim();
@@ -1264,30 +1281,65 @@
         return;
       }
 
-      const exists = DB.users.find(u => u.username.toLowerCase() === username.toLowerCase());
-      if (exists) {
+      const duplicate = DB.users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.id !== editId);
+      if (duplicate) {
         alert('Este nome de utilizador já se encontra registado.');
         return;
       }
 
-      const newUser = {
-        id: 'usr_' + Date.now(),
-        name,
-        username,
-        password,
-        role,
-        contract
-      };
+      if (editId) {
+        const user = DB.users.find(u => u.id === editId);
+        if (user) {
+          user.name = name;
+          user.username = username;
+          user.password = password;
+          user.role = role;
+          user.contract = contract;
+        }
+        alert('Utilizador atualizado com sucesso!');
+      } else {
+        const newUser = {
+          id: 'usr_' + Date.now(),
+          name,
+          username,
+          password,
+          role,
+          contract
+        };
+        DB.users.push(newUser);
+        alert('Utilizador criado com sucesso!');
+      }
 
-      DB.users.push(newUser);
       saveDB(DB);
+      adminCancelEditUser();
       renderAdminUsers();
       populateAdminSelects();
+    }
 
+    function adminEditUser(userId) {
+      const user = DB.users.find(u => u.id === userId);
+      if (!user) return;
+
+      document.getElementById('editing-user-id').value = user.id;
+      document.getElementById('user-name').value = user.name;
+      document.getElementById('user-username').value = user.username;
+      document.getElementById('user-password').value = user.password;
+      document.getElementById('user-role').value = user.role;
+      document.getElementById('user-contract').value = user.contract || 'Terceirizado';
+
+      document.getElementById('title-form-user').textContent = `Editar Utilizador: ${user.name}`;
+      document.getElementById('btn-save-user').textContent = 'Salvar Alterações';
+      document.getElementById('btn-cancel-user').style.display = 'inline-flex';
+    }
+
+    function adminCancelEditUser() {
+      document.getElementById('editing-user-id').value = '';
       document.getElementById('user-name').value = '';
       document.getElementById('user-username').value = '';
       document.getElementById('user-password').value = '';
-      alert('Utilizador criado com sucesso!');
+      document.getElementById('title-form-user').textContent = 'Registar Utilizador';
+      document.getElementById('btn-save-user').textContent = 'Criar Utilizador';
+      document.getElementById('btn-cancel-user').style.display = 'none';
     }
 
     function renderAdminUsers() {
@@ -1299,7 +1351,12 @@
           <td>${u.role}</td>
           <td>${u.contract || '-'}</td>
           <td>
-            ${u.username === 'adm' ? '<small style="color:var(--text-dim)">Protegido</small>' : `<button class="action-icon-btn" onclick="adminDeleteUser('${u.id}')">✕</button>`}
+            <div class="action-group">
+              <button class="action-icon-btn edit" onclick="adminEditUser('${u.id}')" title="Editar">✎</button>
+              ${u.username === 'adm' 
+                ? '<small style="color:var(--text-dim)">Protegido</small>' 
+                : `<button class="action-icon-btn delete" onclick="adminDeleteUser('${u.id}')" title="Excluir">✕</button>`}
+            </div>
           </td>
         </tr>
       `).join('');
@@ -1313,8 +1370,11 @@
       populateAdminSelects();
     }
 
-    // Criar Veículo
-    function adminCreateVehicle() {
+    /* -------------------------------------------------------------
+       ADMIN: VEÍCULOS (CRIAR / EDITAR)
+       ------------------------------------------------------------- */
+    function adminSaveVehicle() {
+      const editId = document.getElementById('editing-vehicle-id').value;
       const model = document.getElementById('vehicle-model').value.trim();
       const plate = document.getElementById('vehicle-plate').value.trim().toUpperCase();
       const userId = document.getElementById('vehicle-user-select').value;
@@ -1324,26 +1384,69 @@
         return;
       }
 
-      const newVeh = {
-        id: 'veh_' + Date.now(),
-        model,
-        plate,
-        userId: userId || null
-      };
+      if (editId) {
+        const veh = DB.vehicles.find(v => v.id === editId);
+        if (veh) {
+          // Desvincula veículo anterior se mudou o utilizador
+          if (veh.userId && veh.userId !== userId) {
+            const oldUser = DB.users.find(u => u.id === veh.userId);
+            if (oldUser && oldUser.vehicleId === editId) delete oldUser.vehicleId;
+          }
 
-      DB.vehicles.push(newVeh);
+          veh.model = model;
+          veh.plate = plate;
+          veh.userId = userId || null;
 
-      if (userId) {
-        const u = DB.users.find(usr => usr.id === userId);
-        if (u) u.vehicleId = newVeh.id;
+          if (userId) {
+            const u = DB.users.find(usr => usr.id === userId);
+            if (u) u.vehicleId = veh.id;
+          }
+        }
+        alert('Veículo atualizado com sucesso!');
+      } else {
+        const newVeh = {
+          id: 'veh_' + Date.now(),
+          model,
+          plate,
+          userId: userId || null
+        };
+
+        DB.vehicles.push(newVeh);
+
+        if (userId) {
+          const u = DB.users.find(usr => usr.id === userId);
+          if (u) u.vehicleId = newVeh.id;
+        }
+        alert('Veículo registado com sucesso!');
       }
 
       saveDB(DB);
+      adminCancelEditVehicle();
       renderAdminVehicles();
+    }
 
+    function adminEditVehicle(vehicleId) {
+      const veh = DB.vehicles.find(v => v.id === vehicleId);
+      if (!veh) return;
+
+      document.getElementById('editing-vehicle-id').value = veh.id;
+      document.getElementById('vehicle-model').value = veh.model;
+      document.getElementById('vehicle-plate').value = veh.plate;
+      document.getElementById('vehicle-user-select').value = veh.userId || '';
+
+      document.getElementById('title-form-vehicle').textContent = `Editar Veículo: ${veh.plate}`;
+      document.getElementById('btn-save-vehicle').textContent = 'Salvar Alterações';
+      document.getElementById('btn-cancel-vehicle').style.display = 'inline-flex';
+    }
+
+    function adminCancelEditVehicle() {
+      document.getElementById('editing-vehicle-id').value = '';
       document.getElementById('vehicle-model').value = '';
       document.getElementById('vehicle-plate').value = '';
-      alert('Veículo registado com sucesso!');
+      document.getElementById('vehicle-user-select').value = '';
+      document.getElementById('title-form-vehicle').textContent = 'Registar Veículo';
+      document.getElementById('btn-save-vehicle').textContent = 'Registar Veículo';
+      document.getElementById('btn-cancel-vehicle').style.display = 'none';
     }
 
     function renderAdminVehicles() {
@@ -1356,7 +1459,10 @@
             <td><b>${v.plate}</b></td>
             <td>${user ? user.name : 'Nenhum'}</td>
             <td>
-              <button class="action-icon-btn" onclick="adminDeleteVehicle('${v.id}')">✕</button>
+              <div class="action-group">
+                <button class="action-icon-btn edit" onclick="adminEditVehicle('${v.id}')" title="Editar">✎</button>
+                <button class="action-icon-btn delete" onclick="adminDeleteVehicle('${v.id}')" title="Excluir">✕</button>
+              </div>
             </td>
           </tr>
         `;
@@ -1373,7 +1479,6 @@
       renderAdminVehicles();
     }
 
-    // Histórico de Comprovativos
     function renderAdminHistory() {
       const tbody = document.getElementById('admin-history-tbody');
       const completed = DB.orders.filter(o => o.status === 'completed');
@@ -1402,9 +1507,9 @@
       }).join('');
     }
 
-    /* ==========================================================================
+    /* -------------------------------------------------------------
        FLUXO DO ENTREGADOR (MOTOBOY / TAXISTA)
-       ========================================================================== */
+       ------------------------------------------------------------- */
     function renderDriverInterface() {
       document.getElementById('driver-display-name').textContent = currentUser.name;
       document.getElementById('driver-display-role').textContent = `${currentUser.role.toUpperCase()} | ${currentUser.contract || 'Terceirizado'}`;
@@ -1497,7 +1602,6 @@
         document.getElementById('label-proof-sign').textContent = 'Coletar Assinatura';
       }
 
-      // Habilita envio se foto OU assinatura tiver sido coletada
       if (selectedOrder.status === 'pending' && (selectedOrder.photo || selectedOrder.signature)) {
         btnSubmit.style.display = 'flex';
       } else {
@@ -1516,9 +1620,9 @@
       renderDriverOrders();
     }
 
-    /* ==========================================================================
-       CÂMARA / CAPTURA DE FOTO
-       ========================================================================== */
+    /* -------------------------------------------------------------
+       CÂMARA & COMPROVATIVOS
+       ------------------------------------------------------------- */
     let videoStream = null;
 
     async function openCameraModal() {
@@ -1541,8 +1645,7 @@
         });
         video.srcObject = videoStream;
       } catch (err) {
-        console.warn('Câmara direta indisponível:', err);
-        // Fallback para input file se não houver permissão
+        console.warn('Câmara indisponível:', err);
         const inputFallback = document.createElement('input');
         inputFallback.type = 'file';
         inputFallback.accept = 'image/*';
@@ -1574,7 +1677,6 @@
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Carimbo de data/hora e OS
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
       ctx.fillStyle = '#f5b000';
@@ -1607,9 +1709,9 @@
       document.getElementById('modal-camera').classList.remove('active');
     }
 
-    /* ==========================================================================
-       ASSINATURA DIGITAL (CANVAS TOUCH & MOUSE)
-       ========================================================================== */
+    /* -------------------------------------------------------------
+       ASSINATURA DIGITAL
+       ------------------------------------------------------------- */
     const signCanvas = document.getElementById('signature-canvas');
     const signCtx = signCanvas.getContext('2d');
     let isDrawing = false;
@@ -1697,7 +1799,6 @@
       refreshProofButtonsState();
     }
 
-    // Registo de Service Worker PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(() => {});

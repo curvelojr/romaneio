@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rildon Express - Protocolo de Entrega</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons for UI elements matching mockup -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#0c1b33',        // Fundo azul escuro profundo
+              card: '#081426',      // Fundo dos cartões
+              surface: '#112240',   // Elementos elevados
+              border: '#1e3860',    // Linhas e bordas
+              yellow: '#ffb703',    // Amarelo característico do mockup
+              green: '#22c55e',     // Verde de confirmação / sucesso
+              danger: '#ef4444'     // Vermelho de descarte
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Estilização para emulação de tela de celular e prevenir toques indesejados */
+    body {
+      background-color: #050b14;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Scrollbar sutil */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e3860;
+      border-radius: 4px;
+    }
+
+    /* Signature canvas styling */
+    #signature-canvas {
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    /* Efeito de pulso discreto */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .shutter-glow {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 md:p-4 text-white">
+
+  <!-- Main Device Container -->
+  <div class="w-full h-screen md:h-[844px] md:max-w-[412px] bg-brand-bg md:rounded-[36px] md:shadow-[0_20px_50px_rgba(0,0,0,0.8)] md:border-[8px] md:border-[#1e293b] flex flex-col overflow-hidden relative">
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast-box" class="absolute top-4 left-4 right-4 z-50 transform -translate-y-20 transition-all duration-300 pointer-events-none opacity-0">
+      <div id="toast-content" class="bg-brand-yellow text-slate-950 px-4 py-3 rounded-xl font-medium text-xs shadow-2xl flex items-center gap-3 border border-yellow-300">
+        <i id="toast-icon" class="fas fa-info-circle text-base"></i>
+        <span id="toast-msg">Mensagem</span>
+      </div>
+    </div>
+
+    <!-- TELA 1: LOGIN -->
+    <section id="screen-login" class="flex-1 flex flex-col items-center justify-between p-8 bg-brand-bg z-10 transition-opacity duration-300">
+      <div class="w-full flex-1 flex flex-col items-center justify-center">
+        <!-- Logo -->
+        <div class="text-center mb-10">
+          <div class="text-3xl font-black tracking-wider flex items-center justify-center">
+            <span class="text-white">RILDON</span>
+            <span class="text-brand-yellow italic ml-1">EXPRESS</span>
+          </div>
+          <div class="h-0.5 w-3/4 bg-brand-yellow mx-auto mt-1 rounded-full"></div>
+        </div>
+
+        <h1 class="text-2xl font-bold mb-6 tracking-wide text-white">Login</h1>
+
+        <!-- Formulário de Acesso -->
+        <div class="w-full space-y-4 max-w-xs">
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-slate-300 mb-1 font-semibold">Usuário</label>
+            <input type="text" id="login-user" value="motoboy01" 
+                   class="w-full px-4 py-3 rounded-lg bg-brand-card border border-brand-border text-white placeholder-slate-500 focus:outline-none focus:border-brand-yellow transition" 
+                   placeholder="Digite seu usuário">
+          </div>
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-slate-300 mb-1 font-semibold">Senha</label>
+            <input type="password" id="login-pass" value="••••••••" 
+                   class="w-full px-4 py-3 rounded-lg bg-brand-card border border-brand-border text-white placeholder-slate-500 focus:outline-none focus:border-brand-yellow transition" 
+                   placeholder="Digite sua senha">
+          </div>
+
+          <button onclick="handleLogin()" class="w-full mt-6 py-3 bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-bold rounded-lg shadow-lg active:scale-95 transition tracking-wide text-sm uppercase">
+            Entrar
+          </button>
+
+          <p class="text-center text-xs text-slate-400 mt-4">
+            Ambiente de Demonstração (Clique em Entrar)
+          </p>
+        </div>
+      </div>
+
+      <!-- Rodapé discreto -->
+      <div class="text-[11px] text-slate-400 text-center">
+        v2.4.0 • PWA de Protocolos com Offline Sync
+      </div>
+    </section>
+
+    <!-- CABEÇALHO DO ENTREGADOR (Aparece após o Login) -->
+    <header id="driver-header" class="hidden flex-col bg-brand-card border-b border-brand-border z-20 shrink-0">
+      <!-- Top Bar com Logo e Logout -->
+      <div class="px-4 py-2.5 flex items-center justify-between border-b border-brand-border/60">
+        <div class="flex items-center text-lg font-black tracking-wider">
+          <span class="text-white">RILDON</span>
+          <span class="text-brand-yellow italic ml-1">EXPRESS</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="resetDataDemo()" title="Resetar Dados" class="text-slate-400 hover:text-white p-1 text-xs">
+            <i class="fas fa-rotate-right"></i>
+          </button>
+          <button onclick="handleLogout()" title="Sair" class="text-slate-400 hover:text-brand-danger p-1 text-xs ml-1">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Card do Entregador -->
+      <div class="p-3.5 flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-slate-700/80 border-2 border-brand-yellow flex items-center justify-center shrink-0 shadow-md">
+          <i class="fas fa-user text-xl text-slate-200"></i>
+        </div>
+        <div class="flex-1 min-w-0 border border-brand-border rounded-md px-3 py-1.5 bg-[#0a182e]">
+          <div class="text-xs font-bold text-white truncate" id="driver-name">Fulano de Tal</div>
+          <div class="text-[11px] text-slate-300 font-medium flex items-center gap-2 mt-0.5">
+            <span>Motoboy</span>
+            <span class="text-slate-600">|</span>
+            <span class="text-slate-400">Terceirizado</span>
+          </div>
+          <div class="text-[10px] text-brand-yellow font-mono flex items-center gap-2 mt-0.5">
+            <span id="driver-bike">Shineray</span>
+            <span class="text-slate-600">|</span>
+            <span id="driver-plate">IAN3256</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- TELA 2: LISTA DE ENTREGAS -->
+    <main id="screen-list" class="hidden flex-1 flex-col overflow-hidden bg-brand-bg">
+      <!-- Título de Seção -->
+      <div class="bg-brand-surface px-4 py-2 border-b border-brand-border flex items-center justify-between">
+        <span class="text-xs font-bold tracking-wider text-slate-200 uppercase">Minhas Entregas</span>
+        <button onclick="showQuickAddModal()" class="text-[11px] bg-brand-card hover:bg-brand-border text-brand-yellow border border-brand-yellow/50 px-2 py-0.5 rounded flex items-center gap-1 font-semibold">
+          <i class="fas fa-plus text-[9px]"></i> Nova OS
+        </button>
+      </div>
+
+      <!-- Abas de Navegação -->
+      <div class="grid grid-cols-2 bg-brand-card border-b border-brand-border">
+        <button id="tab-btn-pending" onclick="switchTab('pending')" 
+                class="py-2.5 text-center font-bold text-xs uppercase tracking-wider border-b-2 border-brand-yellow text-brand-yellow transition flex items-center justify-center gap-1.5">
+          <span>A fazer</span>
+          <span id="badge-pending" class="px-1.5 py-0.2 bg-brand-yellow text-slate-950 rounded-full text-[10px] font-bold">0</span>
+        </button>
+        <button id="tab-btn-completed" onclick="switchTab('completed')" 
+                class="py-2.5 text-center font-bold text-xs uppercase tracking-wider border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5">
+          <span>Feitas</span>
+          <span id="badge-completed" class="px-1.5 py-0.2 bg-slate-700 text-slate-200 rounded-full text-[10px] font-bold">0</span>
+        </button>
+      </div>
+
+      <!-- Tabela Cabeçalho das Colunas -->
+      <div class="grid grid-cols-12 bg-brand-surface/70 px-3 py-2 text-[10px] uppercase font-bold text-slate-400 border-b border-brand-border">
+        <div class="col-span-2 text-center">Nº</div>
+        <div class="col-span-4">Cliente</div>
+        <div class="col-span-3 text-center">Pedido</div>
+        <div class="col-span-3 text-center">Nota Fiscal</div>
+      </div>
+
+      <!-- Lista Rolável de Entregas -->
+      <div id="deliveries-list-container" class="flex-1 overflow-y-auto divide-y divide-brand-border/40">
+        <!-- Renderizado dinamicamente via Javascript -->
+      </div>
+    </main>
+
+    <!-- TELA 3: DETALHES DA ENTREGA E COMPROVANTES -->
+    <section id="screen-detail" class="hidden flex-1 flex-col overflow-y-auto bg-brand-bg">
+      <!-- Sub-cabeçalho de navegação -->
+      <div class="bg-brand-surface px-4 py-2.5 border-b border-brand-border flex items-center justify-between shrink-0">
+        <button onclick="showScreen('screen-list')" class="text-xs font-semibold text-brand-yellow flex items-center gap-1 hover:underline">
+          <i class="fas fa-chevron-left text-[10px]"></i> Voltar à lista
+        </button>
+        <span class="text-xs font-black tracking-wider text-white" id="detail-delivery-title">Entrega 001</span>
+        <span id="detail-badge-status" class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">Pendente</span>
+      </div>
+
+      <!-- Card com Informações da Entrega -->
+      <div class="p-4 space-y-3">
+        <div class="bg-brand-card rounded-xl border border-brand-border p-3.5 space-y-2.5 text-xs shadow-md">
+          <div class="flex justify-between items-start border-b border-brand-border/50 pb-2">
+            <div>
+              <span class="text-[10px] text-slate-400 font-semibold uppercase block">Cliente</span>
+              <span class="font-bold text-white text-sm" id="detail-client-name">Sicrano</span>
+              <span class="text-[11px] text-slate-300 block" id="detail-client-sub">Sicrano Auto Center</span>
+              <span class="text-[10px] text-slate-400 font-mono block" id="detail-client-doc">CNPJ: 050.658.0001/02</span>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-400 font-semibold uppercase block">Valor da entrega</span>
+              <span class="font-black text-brand-yellow text-sm" id="detail-amount">R$ 1.056,00</span>
+            </div>
+          </div>
+
+          <div>
+            <span class="text-[10px] text-slate-400 font-semibold uppercase block">Endereço</span>
+            <div class="flex items-start gap-1.5 mt-0.5">
+              <i class="fas fa-location-dot text-brand-yellow text-xs mt-0.5"></i>
+              <span class="text-slate-200 text-xs font-medium" id="detail-address">Rua dos bobos nº 0</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-1 border-t border-brand-border/50 text-[11px]">
+            <div>
+              <span class="text-slate-400">Pedido Nº:</span>
+              <span class="font-bold text-white ml-1" id="detail-order-no">2568</span>
+            </div>
+            <div>
+              <span class="text-slate-400">Nota Fiscal:</span>
+              <span class="font-bold text-white ml-1" id="detail-invoice-no">2568</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção COMPROVANTE DE ENTREGA -->
+        <div class="bg-brand-card rounded-xl border border-brand-border p-4 shadow-md text-center">
+          <h2 class="text-xs font-black uppercase tracking-wider text-white border-b border-brand-border/80 pb-2 mb-4">
+            COMPROVANTE DE ENTREGA
+          </h2>
+
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Botão / Ação Foto -->
+            <button id="btn-action-photo" onclick="openCameraModal()" class="flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-brand-border bg-[#0a182e] hover:border-slate-400 transition relative group active:scale-95">
+              <div id="icon-photo-container" class="w-14 h-14 rounded-full border-2 border-white flex items-center justify-center mb-2 transition-colors">
+                <i id="icon-photo" class="fas fa-camera text-2xl text-white"></i>
+              </div>
+              <span id="text-photo-label" class="text-[11px] font-semibold text-slate-300">Bater Foto</span>
+              <span id="sub-photo-status" class="text-[9px] text-slate-500 font-medium">Não capturada</span>
+            </button>
+
+            <!-- Botão / Ação Assinatura -->
+            <button id="btn-action-signature" onclick="openSignatureModal()" class="flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-brand-border bg-[#0a182e] hover:border-slate-400 transition relative group active:scale-95">
+              <div id="icon-sign-container" class="w-14 h-14 rounded-full border-2 border-white flex items-center justify-center mb-2 transition-colors">
+                <i id="icon-sign" class="fas fa-file-signature text-2xl text-white"></i>
+              </div>
+              <span id="text-sign-label" class="text-[11px] font-semibold text-slate-300">Coletar Assinatura</span>
+              <span id="sub-sign-status" class="text-[9px] text-slate-500 font-medium">Não coletada</span>
+            </button>
+          </div>
+
+          <!-- Miniaturas de visualização se já capturados -->
+          <div id="proof-previews" class="hidden mt-4 pt-3 border-t border-brand-border/60 text-left">
+            <span class="text-[10px] text-slate-400 uppercase font-bold block mb-2">Comprovantes anexados:</span>
+            <div class="flex gap-3">
+              <div id="thumb-photo-box" class="hidden relative w-16 h-16 rounded-lg overflow-hidden border border-brand-green bg-black">
+                <img id="thumb-photo-img" src="" alt="Foto" class="w-full h-full object-cover">
+                <span class="absolute bottom-0 inset-x-0 bg-black/70 text-[8px] text-brand-green text-center font-bold">FOTO</span>
+              </div>
+              <div id="thumb-sign-box" class="hidden relative w-24 h-16 rounded-lg overflow-hidden border border-brand-green bg-white p-1">
+                <img id="thumb-sign-img" src="" alt="Assinatura" class="w-full h-full object-contain">
+                <span class="absolute bottom-0 inset-x-0 bg-black/70 text-[8px] text-brand-green text-center font-bold">ASSINATURA</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botão de Finalização da Entrega -->
+        <div class="pt-2">
+          <button id="btn-finish-delivery" onclick="finalizeDelivery()" disabled
+                  class="w-full py-3.5 rounded-xl bg-slate-700 text-slate-400 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed transition shadow-lg">
+            <i class="fas fa-paper-plane"></i>
+            <span>Finalizar e Enviar Protocolo</span>
+          </button>
+          <p id="finish-hint" class="text-center text-[10px] text-slate-500 mt-2">
+            Colete a foto ou a assinatura para habilitar o envio
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODAL 1: CÂMERA AO VIVO E CAPTURA -->
+    <div id="modal-camera" class="hidden absolute inset-0 z-50 bg-black flex flex-col justify-between">
+      <!-- Barra Superior da Câmera -->
+      <div class="p-4 bg-gradient-to-b from-black/80 to-transparent flex justify-between items-center z-10">
+        <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <i class="fas fa-camera text-brand-yellow"></i> Captura de Comprovante
+        </span>
+        <button onclick="closeCameraModal()" class="text-white bg-white/20 hover:bg-white/40 rounded-full w-8 h-8 flex items-center justify-center">
+          <i class="fas fa-times text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Área Central do Vídeo / Imagem Capturada -->
+      <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-black">
+        <!-- Live Video Element -->
+        <video id="camera-feed" autoplay playsinline class="w-full h-full object-cover"></video>
+        
+        <!-- Canvas oculto para extrair frame da foto -->
+        <canvas id="camera-canvas" class="hidden"></canvas>
+
+        <!-- Preview da Foto Congelada após o clique -->
+        <img id="camera-preview" class="hidden w-full h-full object-cover absolute inset-0" alt="Preview da Foto">
+
+        <!-- Linha guia de enquadramento -->
+        <div id="camera-guide" class="pointer-events-none absolute inset-8 border-2 border-white/30 rounded-2xl flex flex-col justify-between p-4">
+          <div class="flex justify-between">
+            <span class="border-t-2 border-l-2 border-brand-yellow w-6 h-6"></span>
+            <span class="border-t-2 border-r-2 border-brand-yellow w-6 h-6"></span>
+          </div>
+          <p class="text-center text-white/70 text-xs font-semibold drop-shadow">Enquadre o pacote ou documento</p>
+          <div class="flex justify-between">
+            <span class="border-b-2 border-l-2 border-brand-yellow w-6 h-6"></span>
+            <span class="border-b-2 border-r-2 border-brand-yellow w-6 h-6"></span>
+          </div>
+        </div>
+
+        <!-- Fallback caso a câmera não abra -->
+        <div id="camera-fallback" class="hidden flex-col items-center justify-center p-6 text-center absolute inset-0 bg-brand-bg">
+          <i class="fas fa-camera-rotate text-4xl text-slate-500 mb-3"></i>
+          <p class="text-xs text-slate-300 mb-3">Câmera indisponível ou permissão negada.</p>
+          <label class="cursor-pointer bg-brand-yellow text-slate-950 font-bold text-xs px-4 py-2.5 rounded-lg">
+            <i class="fas fa-upload mr-1"></i> Carregar Foto do Aparelho
+            <input type="file" accept="image/*" class="hidden" onchange="handleFallbackImage(event)">
+          </label>
+        </div>
+      </div>
+
+      <!-- Barra Inferior de Controles (Obturador ou Confirmar/Rejeitar) -->
+      <div class="p-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex items-center justify-center z-10 min-h-[110px]">
+        <!-- Modo Ao Vivo: Botão do Obturador -->
+        <div id="camera-actions-live" class="flex items-center justify-center w-full">
+          <button onclick="takeSnapshot()" class="w-18 h-18 p-1 rounded-full border-4 border-white flex items-center justify-center focus:outline-none shutter-glow">
+            <div class="w-14 h-14 bg-white rounded-full active:scale-90 transition"></div>
+          </button>
+        </div>
+
+        <!-- Modo Preview Capturado: Confirmar ou Cancelar (conforme o mockup) -->
+        <div id="camera-actions-confirm" class="hidden items-center justify-around w-full max-w-xs">
+          <!-- Confirmar (Verde) -->
+          <button onclick="acceptPhoto()" class="w-16 h-16 rounded-full bg-brand-green flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition">
+            <i class="fas fa-check text-2xl font-black"></i>
+          </button>
+          <!-- Descartar (Vermelho) -->
+          <button onclick="retakePhoto()" class="w-16 h-16 rounded-full bg-brand-danger flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition">
+            <i class="fas fa-times text-2xl font-black"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: ASSINATURA DIGITAL (Signature Pad) -->
+    <div id="modal-signature" class="hidden absolute inset-0 z-50 bg-black/95 flex flex-col justify-between p-4">
+      <!-- Cabeçalho -->
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <i class="fas fa-pen-nib text-brand-yellow"></i> Assinatura do Recebedor
+        </span>
+        <button onclick="clearSignatureCanvas()" class="text-xs text-brand-yellow hover:underline font-semibold flex items-center gap-1">
+          <i class="fas fa-eraser"></i> Limpar
+        </button>
+      </div>
+
+      <!-- Área de Desenho (Canvas Branco simulando o mockup do protocolo) -->
+      <div class="flex-1 flex flex-col justify-center items-center my-4">
+        <div class="w-full h-80 bg-white rounded-2xl shadow-2xl relative overflow-hidden flex flex-col">
+          <canvas id="signature-canvas" class="flex-1 w-full"></canvas>
+          
+          <!-- Linha de guia da assinatura conforme mockup -->
+          <div class="pointer-events-none absolute bottom-6 inset-x-8 border-b-2 border-slate-400 text-center pb-1">
+            <span class="text-slate-600 font-medium text-xs tracking-wider uppercase">Assinatura</span>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2 font-medium">Assine com o dedo ou caneta touch dentro da área branca</p>
+      </div>
+
+      <!-- Controles: Confirmar (Check Verde) e Cancelar (X Vermelho) -->
+      <div class="flex items-center justify-center gap-14 pb-4">
+        <!-- Confirmar (Verde) -->
+        <button onclick="saveSignature()" class="w-16 h-16 rounded-full bg-brand-green flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition">
+          <i class="fas fa-check text-2xl font-black"></i>
+        </button>
+        <!-- Descartar / Sair (Vermelho) -->
+        <button onclick="closeSignatureModal()" class="w-16 h-16 rounded-full bg-brand-danger flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition">
+          <i class="fas fa-times text-2xl font-black"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL 3: ADICIONAR NOVA OS RÁPIDA (Para testes da equipe) -->
+    <div id="modal-new-os" class="hidden absolute inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+      <div class="bg-brand-card border border-brand-border w-full max-w-xs rounded-2xl p-5 shadow-2xl">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-bold text-white uppercase">Adicionar Ordem de Serviço</h3>
+          <button onclick="hideQuickAddModal()" class="text-slate-400 hover:text-white">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Cliente</label>
+            <input id="input-new-client" type="text" value="Beltrano Express Peças" class="w-full px-3 py-2 bg-[#0c1b33] border border-brand-border rounded text-white text-xs">
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Endereço</label>
+            <input id="input-new-address" type="text" value="Av. Central, 1200 - Centro" class="w-full px-3 py-2 bg-[#0c1b33] border border-brand-border rounded text-white text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold">Pedido Nº</label>
+              <input id="input-new-order" type="text" value="3890" class="w-full px-3 py-2 bg-[#0c1b33] border border-brand-border rounded text-white text-xs">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold">Nota Fiscal</label>
+              <input id="input-new-nf" type="text" value="3890" class="w-full px-3 py-2 bg-[#0c1b33] border border-brand-border rounded text-white text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Valor (R$)</label>
+            <input id="input-new-val" type="text" value="R$ 480,00" class="w-full px-3 py-2 bg-[#0c1b33] border border-brand-border rounded text-white text-xs">
+          </div>
+        </div>
+
+        <button onclick="submitNewOrder()" class="w-full mt-4 py-2.5 bg-brand-yellow text-slate-950 font-bold text-xs uppercase rounded-lg hover:bg-yellow-400 transition">
+          Cadastrar OS
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ESTADO GLOBAL DA APLICAÇÃO
+    const INITIAL_DELIVERIES = [
+      { id: '001', client: 'Sicrano', subclient: 'Sicrano Auto Center', doc: 'CNPJ: 050.658.0001/02', address: 'Rua dos bobos nº 0', order: '2568', invoice: '2568', amount: 'R$ 1.056,00', status: 'pending', photo: null, signature: null, completedAt: null },
+      { id: '002', client: 'Fulano', subclient: 'Fulano Distribuidora', doc: 'CNPJ: 14.890.334/0001-90', address: 'Av. Marechal Deodoro, 450', order: '2569', invoice: '2569', amount: 'R$ 620,00', status: 'pending', photo: null, signature: null, completedAt: null },
+      { id: '003', client: 'Beltrano', subclient: 'Beltrano Mecânica', doc: 'CNPJ: 32.112.567/0001-11', address: 'Rua das Flores, 88', order: '2570', invoice: '2570', amount: 'R$ 315,50', status: 'pending', photo: null, signature: null, completedAt: null },
+      { id: '004', client: 'Sicrano', subclient: 'Sicrano Filial 2', doc: 'CNPJ: 050.658.0002/80', address: 'Rodovia BR-101, Km 12', order: '2571', invoice: '2571', amount: 'R$ 2.450,00', status: 'pending', photo: null, signature: null, completedAt: null },
+      { id: '005', client: 'Sicrano', subclient: 'Sicrano Lubrificantes', doc: 'CNPJ: 050.658.0003/64', address: 'Rua Paraná, 301', order: '2572', invoice: '2572', amount: 'R$ 180,00', status: 'pending', photo: null, signature: null, completedAt: null },
+      { id: '006', client: 'Sicrano', subclient: 'Sicrano Express Norte', doc: 'CNPJ: 050.658.0004/45', address: 'Av. Beira Mar, 1020', order: '2573', invoice: '2573', amount: 'R$ 940,00', status: 'pending', photo: null, signature: null, completedAt: null },
+      { id: '007', client: 'Sicrano', subclient: 'Sicrano Pneus', doc: 'CNPJ: 050.658.0005/26', address: 'Rua Santos Dumont, 55', order: '2574', invoice: '2574', amount: 'R$ 1.820,00', status: 'pending', photo: null, signature: null, completedAt: null },
+      { id: '008', client: 'Sicrano', subclient: 'Sicrano Autopeças', doc: 'CNPJ: 050.658.0006/07', address: 'Praça da Sé, 14', order: '2575', invoice: '2575', amount: 'R$ 530,00', status: 'pending', photo: null, signature: null, completedAt: null },
+      { id: '009', client: 'Sicrano', subclient: 'Sicrano Importados', doc: 'CNPJ: 050.658.0007/90', address: 'Av. Industrial, 400', order: '2576', invoice: '2576', amount: 'R$ 4.200,00', status: 'pending', photo: null, signature: null, completedAt: null },
+      { id: '010', client: 'Sicrano', subclient: 'Sicrano Logística', doc: 'CNPJ: 050.658.0008/71', address: 'Rua Projetada A, 19', order: '2577', invoice: '2577', amount: 'R$ 770,00', status: 'pending', photo: null, signature: null, completedAt: null }
+    ];
+
+    let state = {
+      user: null,
+      deliveries: [],
+      currentTab: 'pending',
+      activeDeliveryId: null,
+      tempPhotoData: null,
+      cameraStream: null
+    };
+
+    function loadState() {
+      try {
+        const saved = localStorage.getItem('rildon_express_state_v1');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          state.deliveries = parsed.deliveries || INITIAL_DELIVERIES;
+          state.user = parsed.user || null;
+        } else {
+          state.deliveries = [...INITIAL_DELIVERIES];
+        }
+      } catch (e) {
+        state.deliveries = [...INITIAL_DELIVERIES];
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem('rildon_express_state_v1', JSON.stringify({
+          deliveries: state.deliveries,
+          user: state.user
+        }));
+      } catch (e) {
+        console.warn('Erro ao salvar no LocalStorage:', e);
+      }
+    }
+
+    function resetDataDemo() {
+      if (confirm) {
+        // Usar toast customizado em vez de nativos
+      }
+      state.deliveries = JSON.parse(JSON.stringify(INITIAL_DELIVERIES));
+      saveState();
+      renderDeliveriesList();
+      showToast('Dados restaurados para o padrão original!');
+    }
+
+    function showScreen(screenId) {
+      const screens = ['screen-login', 'screen-list', 'screen-detail'];
+      screens.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById(screenId);
+      if (target) {
+        target.classList.remove('hidden');
+        if (screenId !== 'screen-login') {
+          document.getElementById('driver-header').classList.remove('hidden');
+          document.getElementById('driver-header').classList.add('flex');
+        } else {
+          document.getElementById('driver-header').classList.add('hidden');
+          document.getElementById('driver-header').classList.remove('flex');
+        }
+      }
+    }
+
+    function handleLogin() {
+      const user = document.getElementById('login-user').value.trim() || 'Fulano de Tal';
+      state.user = {
+        name: 'Fulano de Tal',
+        role: 'Motoboy | Terceirizado',
+        vehicle: 'Shineray | IAN3256'
+      };
+      saveState();
+      showToast('Bem-vindo, ' + state.user.name + '!');
+      renderDeliveriesList();
+      showScreen('screen-list');
+    }
+
+    function handleLogout() {
+      state.user = null;
+      saveState();
+      showScreen('screen-login');
+      showToast('Sessão encerrada.');
+    }
+
+    function switchTab(tab) {
+      state.currentTab = tab;
+      const btnPending = document.getElementById('tab-btn-pending');
+      const btnCompleted = document.getElementById('tab-btn-completed');
+
+      if (tab === 'pending') {
+        btnPending.className = 'py-2.5 text-center font-bold text-xs uppercase tracking-wider border-b-2 border-brand-yellow text-brand-yellow transition flex items-center justify-center gap-1.5';
+        btnCompleted.className = 'py-2.5 text-center font-bold text-xs uppercase tracking-wider border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5';
+      } else {
+        btnCompleted.className = 'py-2.5 text-center font-bold text-xs uppercase tracking-wider border-b-2 border-brand-yellow text-brand-yellow transition flex items-center justify-center gap-1.5';
+        btnPending.className = 'py-2.5 text-center font-bold text-xs uppercase tracking-wider border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5';
+      }
+      renderDeliveriesList();
+    }
+
+    function renderDeliveriesList() {
+      const container = document.getElementById('deliveries-list-container');
+      const pendingCount = state.deliveries.filter(d => d.status === 'pending').length;
+      const completedCount = state.deliveries.filter(d => d.status === 'completed').length;
+
+      document.getElementById('badge-pending').innerText = pendingCount;
+      document.getElementById('badge-completed').innerText = completedCount;
+
+      const filtered = state.deliveries.filter(d => d.status === state.currentTab);
+      container.innerHTML = '';
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-400 text-xs">
+            <i class="fas fa-box-open text-3xl mb-2 text-slate-600 block"></i>
+            Nenhuma entrega ${state.currentTab === 'pending' ? 'pendente' : 'concluída'} no momento.
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-12 px-3 py-3 text-xs items-center hover:bg-brand-surface/50 cursor-pointer transition active:bg-brand-card';
+        row.onclick = () => openDeliveryDetails(item.id);
+
+        const isCompleted = item.status === 'completed';
+
+        row.innerHTML = `
+          <div class="col-span-2 text-center font-mono font-bold text-slate-300 text-[11px]">${item.id}</div>
+          <div class="col-span-4 font-semibold text-white truncate flex items-center gap-1.5">
+            ${isCompleted ? '<i class="fas fa-check-circle text-brand-green text-[10px]"></i>' : ''}
+            <span class="truncate">${item.client}</span>
+          </div>
+          <div class="col-span-3 text-center text-slate-300 font-mono text-[11px]">${item.order}</div>
+          <div class="col-span-3 text-center text-slate-300 font-mono text-[11px]">${item.invoice}</div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function openDeliveryDetails(id) {
+      const delivery = state.deliveries.find(d => d.id === id);
+      if (!delivery) return;
+
+      state.activeDeliveryId = id;
+
+      document.getElementById('detail-delivery-title').innerText = `Entrega ${delivery.id}`;
+      document.getElementById('detail-client-name').innerText = delivery.client;
+      document.getElementById('detail-client-sub').innerText = delivery.subclient || 'Cliente Padrão';
+      document.getElementById('detail-client-doc').innerText = delivery.doc || 'CNPJ / CPF não informado';
+      document.getElementById('detail-address').innerText = delivery.address;
+      document.getElementById('detail-order-no').innerText = delivery.order;
+      document.getElementById('detail-invoice-no').innerText = delivery.invoice;
+      document.getElementById('detail-amount').innerText = delivery.amount;
+
+      // Status Badge
+      const statusBadge = document.getElementById('detail-badge-status');
+      if (delivery.status === 'completed') {
+        statusBadge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-brand-green/20 text-brand-green border border-brand-green/40';
+        statusBadge.innerText = 'Concluída';
+      } else {
+        statusBadge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-brand-yellow/20 text-brand-yellow border border-brand-yellow/40';
+        statusBadge.innerText = 'Pendente';
+      }
+
+      updateActionButtonsVisuals(delivery);
+      showScreen('screen-detail');
+    }
+
+    function updateActionButtonsVisuals(delivery) {
+      // Elementos Foto
+      const btnPhoto = document.getElementById('btn-action-photo');
+      const iconPhotoContainer = document.getElementById('icon-photo-container');
+      const iconPhoto = document.getElementById('icon-photo');
+      const subPhoto = document.getElementById('sub-photo-status');
+      const thumbPhotoBox = document.getElementById('thumb-photo-box');
+      const thumbPhotoImg = document.getElementById('thumb-photo-img');
+
+      // Elementos Assinatura
+      const btnSign = document.getElementById('btn-action-signature');
+      const iconSignContainer = document.getElementById('icon-sign-container');
+      const iconSign = document.getElementById('icon-sign');
+      const subSign = document.getElementById('sub-sign-status');
+      const thumbSignBox = document.getElementById('thumb-sign-box');
+      const thumbSignImg = document.getElementById('thumb-sign-img');
+
+      const proofContainer = document.getElementById('proof-previews');
+      const btnFinish = document.getElementById('btn-finish-delivery');
+      const finishHint = document.getElementById('finish-hint');
+
+      // Foto já foi capturada?
+      if (delivery.photo) {
+        btnPhoto.className = 'flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-brand-green bg-brand-green/10 transition relative group';
+        iconPhotoContainer.className = 'w-14 h-14 rounded-full border-2 border-brand-green bg-brand-green text-white flex items-center justify-center mb-2 shadow-lg';
+        iconPhoto.className = 'fas fa-check text-2xl text-white';
+        subPhoto.innerText = 'Foto Capturada ✓';
+        subPhoto.className = 'text-[9px] text-brand-green font-bold';
+
+        thumbPhotoBox.classList.remove('hidden');
+        thumbPhotoImg.src = delivery.photo;
+      } else {
+        btnPhoto.className = 'flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-brand-border bg-[#0a182e] hover:border-slate-400 transition relative group active:scale-95';
+        iconPhotoContainer.className = 'w-14 h-14 rounded-full border-2 border-white flex items-center justify-center mb-2';
+        iconPhoto.className = 'fas fa-camera text-2xl text-white';
+        subPhoto.innerText = 'Não capturada';
+        subPhoto.className = 'text-[9px] text-slate-500 font-medium';
+
+        thumbPhotoBox.classList.add('hidden');
+      }
+
+      // Assinatura já foi capturada?
+      if (delivery.signature) {
+        btnSign.className = 'flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-brand-green bg-brand-green/10 transition relative group';
+        iconSignContainer.className = 'w-14 h-14 rounded-full border-2 border-brand-green bg-brand-green text-white flex items-center justify-center mb-2 shadow-lg';
+        iconSign.className = 'fas fa-file-circle-check text-2xl text-white';
+        subSign.innerText = 'Assinado ✓';
+        subSign.className = 'text-[9px] text-brand-green font-bold';
+
+        thumbSignBox.classList.remove('hidden');
+        thumbSignImg.src = delivery.signature;
+      } else {
+        btnSign.className = 'flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-brand-border bg-[#0a182e] hover:border-slate-400 transition relative group active:scale-95';
+        iconSignContainer.className = 'w-14 h-14 rounded-full border-2 border-white flex items-center justify-center mb-2';
+        iconSign.className = 'fas fa-file-signature text-2xl text-white';
+        subSign.innerText = 'Não coletada';
+        subSign.className = 'text-[9px] text-slate-500 font-medium';
+
+        thumbSignBox.classList.add('hidden');
+      }
+
+      // Exibir painel de miniaturas caso haja pelo menos um comprovante
+      if (delivery.photo || delivery.signature) {
+        proofContainer.classList.remove('hidden');
+      } else {
+        proofContainer.classList.add('hidden');
+      }
+
+      // Validação para habilitar o envio (precisa de pelo menos foto OU assinatura)
+      if (delivery.status === 'completed') {
+        btnFinish.disabled = true;
+        btnFinish.className = 'w-full py-3.5 rounded-xl bg-brand-green/20 border border-brand-green text-brand-green font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-default';
+        btnFinish.innerHTML = '<i class="fas fa-check-double"></i> <span>Protocolo já Encaminhado</span>';
+        finishHint.innerText = `Finalizada em ${delivery.completedAt || 'Hoje'}`;
+        finishHint.className = 'text-center text-[10px] text-brand-green font-bold mt-2';
+      } else if (delivery.photo || delivery.signature) {
+        btnFinish.disabled = false;
+        btnFinish.className = 'w-full py-3.5 rounded-xl bg-brand-yellow hover:bg-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95 transition';
+        btnFinish.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Finalizar e Enviar Protocolo</span>';
+        finishHint.innerText = 'Pronto para envio do protocolo à base';
+        finishHint.className = 'text-center text-[10px] text-slate-300 font-medium mt-2';
+      } else {
+        btnFinish.disabled = true;
+        btnFinish.className = 'w-full py-3.5 rounded-xl bg-slate-800 text-slate-500 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed transition';
+        btnFinish.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Finalizar e Enviar Protocolo</span>';
+        finishHint.innerText = 'Colete a foto ou a assinatura para habilitar o envio';
+        finishHint.className = 'text-center text-[10px] text-slate-500 mt-2';
+      }
+    }
+
+    async function openCameraModal() {
+      const modal = document.getElementById('modal-camera');
+      modal.classList.remove('hidden');
+
+      // Reset dos botões de ação da câmera
+      document.getElementById('camera-actions-live').classList.remove('hidden');
+      document.getElementById('camera-actions-live').classList.add('flex');
+      document.getElementById('camera-actions-confirm').classList.add('hidden');
+      document.getElementById('camera-actions-confirm').classList.remove('flex');
+      document.getElementById('camera-preview').classList.add('hidden');
+      document.getElementById('camera-guide').classList.remove('hidden');
+      document.getElementById('camera-fallback').classList.add('hidden');
+
+      const video = document.getElementById('camera-feed');
+      video.classList.remove('hidden');
+
+      try {
+        // Tenta abrir a câmera traseira em dispositivos móveis
+        const constraints = {
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+        state.cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = state.cameraStream;
+        await video.play();
+      } catch (err) {
+        console.warn('Câmera indisponível ou permissão negada:', err);
+        // Exibe tela alternativa com input file
+        video.classList.add('hidden');
+        document.getElementById('camera-guide').classList.add('hidden');
+        document.getElementById('camera-fallback').classList.remove('hidden');
+        document.getElementById('camera-fallback').classList.add('flex');
+      }
+    }
+
+    function stopCameraStream() {
+      if (state.cameraStream) {
+        state.cameraStream.getTracks().forEach(track => track.stop());
+        state.cameraStream = null;
+      }
+    }
+
+    function closeCameraModal() {
+      stopCameraStream();
+      document.getElementById('modal-camera').classList.add('hidden');
+    }
+
+    function takeSnapshot() {
+      const video = document.getElementById('camera-feed');
+      const canvas = document.getElementById('camera-canvas');
+      const preview = document.getElementById('camera-preview');
+
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Adicionar carimbo d'água de data e OS na foto para validade jurídica
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(10, canvas.height - 45, 340, 35);
+      ctx.fillStyle = '#ffb703';
+      ctx.font = 'bold 12px Inter, sans-serif';
+      const nowStr = new Date().toLocaleString('pt-BR');
+      ctx.fillText(`RILDON EXPRESS - OS ${state.activeDeliveryId} - ${nowStr}`, 18, canvas.height - 23);
+
+      state.tempPhotoData = canvas.toDataURL('image/jpeg', 0.85);
+
+      preview.src = state.tempPhotoData;
+      preview.classList.remove('hidden');
+      video.classList.add('hidden');
+      document.getElementById('camera-guide').classList.add('hidden');
+
+      // Troca os botões de ação para Confirmar (Verde) e Descartar (Vermelho) conforme o mockup
+      document.getElementById('camera-actions-live').classList.add('hidden');
+      document.getElementById('camera-actions-live').classList.remove('flex');
+      document.getElementById('camera-actions-confirm').classList.remove('hidden');
+      document.getElementById('camera-actions-confirm').classList.add('flex');
+    }
+
+    function handleFallbackImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        state.tempPhotoData = e.target.result;
+        const preview = document.getElementById('camera-preview');
+        preview.src = state.tempPhotoData;
+        preview.classList.remove('hidden');
+        document.getElementById('camera-fallback').classList.add('hidden');
+
+        document.getElementById('camera-actions-live').classList.add('hidden');
+        document.getElementById('camera-actions-live').classList.remove('flex');
+        document.getElementById('camera-actions-confirm').classList.remove('hidden');
+        document.getElementById('camera-actions-confirm').classList.add('flex');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function retakePhoto() {
+      state.tempPhotoData = null;
+      document.getElementById('camera-preview').classList.add('hidden');
+      document.getElementById('camera-guide').classList.remove('hidden');
+      document.getElementById('camera-feed').classList.remove('hidden');
+
+      document.getElementById('camera-actions-confirm').classList.add('hidden');
+      document.getElementById('camera-actions-confirm').classList.remove('flex');
+      document.getElementById('camera-actions-live').classList.remove('hidden');
+      document.getElementById('camera-actions-live').classList.add('flex');
+    }
+
+    function acceptPhoto() {
+      if (!state.tempPhotoData) return;
+
+      const delivery = state.deliveries.find(d => d.id === state.activeDeliveryId);
+      if (delivery) {
+        delivery.photo = state.tempPhotoData;
+        saveState();
+        updateActionButtonsVisuals(delivery);
+        showToast('Foto do comprovante registrada!');
+      }
+
+      closeCameraModal();
+    }
+
+    let signaturePad = {
+      canvas: null,
+      ctx: null,
+      drawing: false,
+      hasDrawing: false,
+      init: function() {
+        this.canvas = document.getElementById('signature-canvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        // Ajustar resolução para evitar pixelamento
+        const resize = () => {
+          const rect = this.canvas.parentElement.getBoundingClientRect();
+          this.canvas.width = rect.width;
+          this.canvas.height = rect.height;
+          this.ctx.lineWidth = 3.5;
+          this.ctx.lineCap = 'round';
+          this.ctx.lineJoin = 'round';
+          this.ctx.strokeStyle = '#0c1b33'; // Azul escuro da marca para o traço
+        };
+        resize();
+
+        // Mouse Listeners
+        this.canvas.addEventListener('mousedown', (e) => this.startDraw(e));
+        this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+        window.addEventListener('mouseup', () => this.stopDraw());
+
+        // Touch Listeners
+        this.canvas.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          this.startDraw(touch);
+        }, { passive: false });
+
+        this.canvas.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          this.draw(touch);
+        }, { passive: false });
+
+        this.canvas.addEventListener('touchend', () => this.stopDraw());
+      },
+      getPos: function(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        };
+      },
+      startDraw: function(e) {
+        this.drawing = true;
+        this.hasDrawing = true;
+        const pos = this.getPos(e);
+        this.ctx.beginPath();
+        this.ctx.moveTo(pos.x, pos.y);
+      },
+      draw: function(e) {
+        if (!this.drawing) return;
+        const pos = this.getPos(e);
+        this.ctx.lineTo(pos.x, pos.y);
+        this.ctx.stroke();
+      },
+      stopDraw: function() {
+        if (this.drawing) {
+          this.drawing = false;
+          this.ctx.closePath();
+        }
+      },
+      clear: function() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.hasDrawing = false;
+      }
+    };
+
+    function openSignatureModal() {
+      const modal = document.getElementById('modal-signature');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        signaturePad.init();
+        signaturePad.clear();
+      }, 50);
+    }
+
+    function closeSignatureModal() {
+      document.getElementById('modal-signature').classList.add('hidden');
+    }
+
+    function clearSignatureCanvas() {
+      signaturePad.clear();
+    }
+
+    function saveSignature() {
+      if (!signaturePad.hasDrawing) {
+        showToast('Por favor, faça a assinatura antes de confirmar!');
+        return;
+      }
+
+      const signatureData = signaturePad.canvas.toDataURL('image/png');
+      const delivery = state.deliveries.find(d => d.id === state.activeDeliveryId);
+      if (delivery) {
+        delivery.signature = signatureData;
+        saveState();
+        updateActionButtonsVisuals(delivery);
+        showToast('Assinatura salva com sucesso!');
+      }
+
+      closeSignatureModal();
+    }
+
+    function finalizeDelivery() {
+      const delivery = state.deliveries.find(d => d.id === state.activeDeliveryId);
+      if (!delivery) return;
+
+      if (!delivery.photo && !delivery.signature) {
+        showToast('É necessário pelo menos Foto ou Assinatura!');
+        return;
+      }
+
+      delivery.status = 'completed';
+      delivery.completedAt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' de ' + new Date().toLocaleDateString('pt-BR');
+      saveState();
+
+      showToast(`Protocolo da OS ${delivery.id} enviado para a central!`);
+      updateActionButtonsVisuals(delivery);
+
+      setTimeout(() => {
+        switchTab('completed');
+        showScreen('screen-list');
+      }, 800);
+    }
+
+    function showQuickAddModal() {
+      document.getElementById('modal-new-os').classList.remove('hidden');
+    }
+
+    function hideQuickAddModal() {
+      document.getElementById('modal-new-os').classList.add('hidden');
+    }
+
+    function submitNewOrder() {
+      const client = document.getElementById('input-new-client').value.trim() || 'Novo Cliente';
+      const address = document.getElementById('input-new-address').value.trim() || 'Endereço';
+      const order = document.getElementById('input-new-order').value.trim() || '9999';
+      const invoice = document.getElementById('input-new-nf').value.trim() || '9999';
+      const amount = document.getElementById('input-new-val').value.trim() || 'R$ 0,00';
+
+      const nextNumber = (state.deliveries.length + 1).toString().padStart(3, '0');
+
+      const newDelivery = {
+        id: nextNumber,
+        client: client,
+        subclient: client,
+        doc: 'CNPJ: 00.000.000/0001-00',
+        address: address,
+        order: order,
+        invoice: invoice,
+        amount: amount,
+        status: 'pending',
+        photo: null,
+        signature: null,
+        completedAt: null
+      };
+
+      state.deliveries.unshift(newDelivery);
+      saveState();
+      hideQuickAddModal();
+      renderDeliveriesList();
+      showToast(`Nova OS ${nextNumber} adicionada!`);
+    }
+
+    function showToast(message) {
+      const box = document.getElementById('toast-box');
+      const text = document.getElementById('toast-msg');
+      text.innerText = message;
+
+      box.classList.remove('opacity-0', '-translate-y-20');
+      box.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(window._toastTimeout);
+      window._toastTimeout = setTimeout(() => {
+        box.classList.add('opacity-0', '-translate-y-20');
+        box.classList.remove('opacity-100', 'translate-y-0');
+      }, 2600);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      if (state.user) {
+        renderDeliveriesList();
+        showScreen('screen-list');
+      } else {
+        showScreen('screen-login');
+      }
+    });
+  </script>
+</body>
+</html>
